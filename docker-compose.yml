@@ -1,0 +1,38 @@
+services:
+  auth-db:
+    image: mysql:8.0
+    container_name: shopease-auth-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - auth_mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'mysqladmin ping -h 127.0.0.1 -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent'
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  auth-api:
+    build: .
+    container_name: shopease-auth-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST: auth-db
+      DB_PORT: 3306
+    ports:
+      - "8004:8004"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+volumes:
+  auth_mysql_data:
